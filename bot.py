@@ -2,6 +2,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from config import BOT_TOKEN
 from handlers.registration import start, rules
 from handlers.relay import relay, whoami, menu, done, report
+from handlers.admin import export_pairings, broadcast, reassign
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
@@ -11,6 +12,9 @@ def main():
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(CommandHandler("done", done))
     app.add_handler(CommandHandler("report", report))
+    app.add_handler(CommandHandler("export", export_pairings))
+    app.add_handler(CommandHandler("broadcast", broadcast))
+    app.add_handler(CommandHandler("reassign", reassign))
     app.add_handler(MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.PHOTO, relay))
     app.run_polling()
 

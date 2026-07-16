@@ -199,6 +199,28 @@ def get_participant_by_id(participant_id: int):
     conn.close()
     return row
 
+def get_all_claimed_participants():
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id, real_name, telegram_user_id FROM participants WHERE status = 'claimed'"
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def get_all_pairings() -> dict[int, int]:
+    conn = get_connection()
+    rows = conn.execute("SELECT angel_id, mortal_id FROM pairings").fetchall()
+    conn.close()
+    return {row["angel_id"]: row["mortal_id"] for row in rows}
+
+
+def mark_dropped(participant_id: int):
+    conn = get_connection()
+    conn.execute("UPDATE participants SET status = 'dropped' WHERE id = ?", (participant_id,))
+    conn.commit()
+    conn.close()
+    
 if __name__ == "__main__":
     init_db()
     print("Database initialized at", DB_PATH)
