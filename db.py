@@ -9,6 +9,12 @@ def get_connection():
     # can access column by name using: row["real_name"]
     return conn
 
+def get_participant_id_by_name(name: str) -> int | None:
+    conn = get_connection()
+    row = conn.execute("SELECT id FROM participants WHERE real_name = ?", (name,)).fetchone()
+    conn.close()
+    return row["id"] if row else None
+
 def init_db():
     conn = get_connection()
     conn.executescript("""
