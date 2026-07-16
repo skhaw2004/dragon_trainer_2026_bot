@@ -20,7 +20,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"Welcome to Dragon & Trainer 2026, {participant['real_name']}!\n\n"
-        f"Your trainer is: {mortal_name}. Send them anonymous kindness any time through this bot.\n"
+        f"Your dragon is: {mortal_name}. Send them anonymous kindness any time through this bot.\n"
         "You'll also get anonymous messages from your own secret trainer — you can reply to them too.\n\n"
         "Pick who to talk to below, or type /menu any time to bring this up again.",
         reply_markup=MENU_KEYBOARD,
