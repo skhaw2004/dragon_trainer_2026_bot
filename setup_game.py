@@ -2,17 +2,25 @@ from db import init_db, import_participants, get_participant_by_name, get_partic
 from matching import load_manual_pairings, validate_full_coverage
 
 PARTICIPANTS = [
-    {"name": "Alice", "username": "alice_tg", "tier": "easy"},
+    {"name": "Stuart", "username": "liyouzh1", "tier": "easy"},
     {"name": "Bob", "username": "bob_tg", "tier": "easy"},
     {"name": "Charlie", "username": "charlie_tg", "tier": "easy"},
     {"name": "Dana", "username": "dana_tg", "tier": "easy"},
+    #placeholder names
 ]
 
 PAIRINGS = [
-    ("Alice", "Bob"),
+    ("Stuart", "Bob"),
     ("Bob", "Charlie"),
     ("Charlie", "Dana"),
-    ("Dana", "Alice"),
+    ("Dana", "Stuart"),
+    #placeholder pairings
+
+    #easy
+
+    #medium
+
+    #hard
 ]
 
 if __name__ == "__main__":

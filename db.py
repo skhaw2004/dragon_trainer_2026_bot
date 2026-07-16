@@ -20,7 +20,8 @@ def init_db():
         telegram_user_id INTEGER,
         tier TEXT NOT NULL CHECK(tier IN ('easy', 'medium', 'hard')),
         status TEXT NOT NULL DEFAULT 'invited',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        chat_mode TEXT NOT NULL DEFAULT 'none' CHECK(chat_mode IN('none', 'mortal', 'angel'))
     );
 
     CREATE TABLE IF NOT EXISTS pairings (
@@ -120,6 +121,54 @@ def claim_participant(participant_id: int, telegram_user_id: int):
     conn.execute(
         "UPDATE participants SET telegram_user_id = ?, status = 'claimed' WHERE id = ?",
         (telegram_user_id, participant_id),
+    )
+    conn.commit()
+    conn.close()
+
+def get_my_mortal(participant_id: int):
+    conn = get_connection()
+    row = conn.execute("""
+        SELECT p2.id, p2.real_name, p2.telegram_user_id
+        FROM pairings p JOIN participants p2 ON p.mortal_id = p2.id
+        WHERE p.angel_id = ?
+    """, (participant_id,)).fetchone()
+    conn.close()
+    return row
+
+
+def get_my_angel(participant_id: int):
+    conn = get_connection()
+    row = conn.execute("""
+        SELECT p2.id, p2.real_name, p2.telegram_user_id
+        FROM pairings p JOIN participants p2 ON p.angel_id = p2.id
+        WHERE p.mortal_id = ?
+    """, (participant_id,)).fetchone()
+    conn.close()
+    return row
+
+
+def get_participant_by_telegram_id(telegram_user_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, real_name, chat_mode, telegram_user_id FROM participants WHERE telegram_user_id = ?",
+        (telegram_user_id,),
+    ).fetchone()
+    conn.close()
+    return row
+
+
+def set_chat_mode(participant_id: int, mode: str):
+    conn = get_connection()
+    conn.execute("UPDATE participants SET chat_mode = ? WHERE id = ?", (mode, participant_id))
+    conn.commit()
+    conn.close()
+
+
+def log_message(from_id: int, to_id: int, content_type: str, content: str):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO message_log (from_id, to_id, content_type, content) VALUES (?, ?, ?, ?)",
+        (from_id, to_id, content_type, content),
     )
     conn.commit()
     conn.close()
