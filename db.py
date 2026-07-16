@@ -3,17 +3,12 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parent / "game.db"
 
+
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    # can access column by name using: row["real_name"]
     return conn
 
-def get_participant_id_by_name(name: str) -> int | None:
-    conn = get_connection()
-    row = conn.execute("SELECT id FROM participants WHERE real_name = ?", (name,)).fetchone()
-    conn.close()
-    return row["id"] if row else None
 
 def init_db():
     conn = get_connection()
@@ -21,20 +16,20 @@ def init_db():
     CREATE TABLE IF NOT EXISTS participants (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         real_name TEXT NOT NULL,
-        join_code TEXT UNIQUE NOT NULL,
+        telegram_username TEXT UNIQUE NOT NULL,
         telegram_user_id INTEGER,
-        telegram_username TEXT,
+        tier TEXT NOT NULL CHECK(tier IN ('easy', 'medium', 'hard')),
         status TEXT NOT NULL DEFAULT 'invited',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    
+
     CREATE TABLE IF NOT EXISTS pairings (
         angel_id INTEGER NOT NULL,
         mortal_id INTEGER NOT NULL,
         FOREIGN KEY (angel_id) REFERENCES participants(id),
         FOREIGN KEY (mortal_id) REFERENCES participants(id)
     );
-                       
+
     CREATE TABLE IF NOT EXISTS message_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         from_id INTEGER NOT NULL,
@@ -50,6 +45,58 @@ def init_db():
     conn.commit()
     conn.close()
 
+
+def import_participants(participants: list[dict]):
+    """participants: [{"name": ..., "username": ..., "tier": ...}, ...]"""
+    conn = get_connection()
+    for p in participants:
+        conn.execute(
+            "INSERT INTO participants (real_name, telegram_username, tier) VALUES (?, ?, ?)",
+            (p["name"].strip(), p["username"].strip().lstrip("@").lower(), p["tier"].strip().lower()),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_participant_by_name(name: str):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, tier FROM participants WHERE real_name = ?", (name,)
+    ).fetchone()
+    conn.close()
+    return row
+
+
+def get_participant_by_username(username: str):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, real_name, tier, status FROM participants WHERE telegram_username = ?",
+        (username.strip().lstrip("@").lower(),),
+    ).fetchone()
+    conn.close()
+    return row
+
+
+def get_participant_ids_by_tier(tier: str) -> list[int]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id FROM participants WHERE tier = ?", (tier.lower(),)
+    ).fetchall()
+    conn.close()
+    return [row["id"] for row in rows]
+
+
+def save_pairings(pairings: dict[int, int]):
+    conn = get_connection()
+    conn.execute("DELETE FROM pairings")  # clear out any previous run first
+    conn.executemany(
+        "INSERT INTO pairings (angel_id, mortal_id) VALUES (?, ?)",
+        list(pairings.items()),
+    )
+    conn.commit()
+    conn.close()
+
+
 if __name__ == "__main__":
     init_db()
-    print("DATABASE INITIALIZED AT", DB_PATH)
+    print("Database initialized at", DB_PATH)
