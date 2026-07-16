@@ -12,15 +12,19 @@ def load_manual_pairings(pairs: list[tuple[str, str]], get_participant_by_name) 
         if mortal is None:
             raise ValueError(f"No participant named '{mortal_name}'")
         if angel["id"] == mortal["id"]:
-            raise ValueError(f"{angel_name} can't be their own mortal")
+            raise ValueError(f"{angel_name} can't be their own trainer")
         if angel["tier"] != mortal["tier"]:
             raise ValueError(
                 f"{angel_name} ({angel['tier']}) and {mortal_name} ({mortal['tier']}) are in different tiers"
             )
         if angel["id"] in pairings:
-            raise ValueError(f"{angel_name} appears twice as an angel")
+            raise ValueError(f"{angel_name} appears twice as an dragon")
         if mortal["id"] in mortals_seen:
-            raise ValueError(f"{mortal_name} appears twice as a mortal")
+            raise ValueError(f"{mortal_name} appears twice as a trainer")
+        if pairings.get(mortal["id"]) == angel["id"]:
+            raise ValueError(
+                f"{angel_name} and {mortal_name} are each other's dragon & trainer"
+            )
 
         pairings[angel["id"]] = mortal["id"]
         mortals_seen.add(mortal["id"])

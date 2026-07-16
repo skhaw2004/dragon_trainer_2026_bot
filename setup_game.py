@@ -1,16 +1,18 @@
-from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings
+from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings, get_pairings_with_names
 from matching import load_manual_pairings, validate_full_coverage
 
 PARTICIPANTS = [
     {"name": "Alice", "username": "alice_tg", "tier": "easy"},
-    {"name": "Bob", "username": "bob_the_builder", "tier": "easy"},
-    # ... all 40-50, copied by hand from the form responses
+    {"name": "Bob", "username": "bob_tg", "tier": "easy"},
+    {"name": "Charlie", "username": "charlie_tg", "tier": "easy"},
+    {"name": "Dana", "username": "dana_tg", "tier": "easy"},
 ]
 
 PAIRINGS = [
     ("Alice", "Bob"),
     ("Bob", "Charlie"),
-    # ...
+    ("Charlie", "Dana"),
+    ("Dana", "Alice"),
 ]
 
 if __name__ == "__main__":
@@ -25,4 +27,6 @@ if __name__ == "__main__":
         validate_full_coverage(tier_pairings, tier_ids)
 
     save_pairings(all_pairings)
+    for angel_name, mortal_name in get_pairings_with_names():
+        print(f"Dragon:{angel_name} -> Trainer:{mortal_name}")
     print(f"Loaded {len(PARTICIPANTS)} participants and {len(all_pairings)} pairings.")

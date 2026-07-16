@@ -41,6 +41,13 @@ def init_db():
         FOREIGN KEY (from_id) REFERENCES participants(id),
         FOREIGN KEY (to_id) REFERENCES participants(id)
     );
+                       
+    CREATE VIEW IF NOT EXISTS pairings_readable AS
+    SELECT a.real_name AS angel_name, m.real_name AS mortal_name
+    FROM pairings p
+    JOIN participants a ON p.angel_id = a.id
+    JOIN participants m ON p.mortal_id = m.id;
+                       
     """)
     conn.commit()
     conn.close()
@@ -84,6 +91,17 @@ def get_participant_ids_by_tier(tier: str) -> list[int]:
     ).fetchall()
     conn.close()
     return [row["id"] for row in rows]
+
+def get_pairings_with_names():
+    conn = get_connection()
+    rows = conn.execute("""
+        SELECT a.real_name AS angel_name, m.real_name AS mortal_name
+        FROM pairings p
+        JOIN participants a ON p.angel_id = a.id
+        JOIN participants m ON p.mortal_id = m.id
+    """).fetchall()
+    conn.close()
+    return [(row["angel_name"], row["mortal_name"]) for row in rows]
 
 
 def save_pairings(pairings: dict[int, int]):
