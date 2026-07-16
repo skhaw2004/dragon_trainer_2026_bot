@@ -21,6 +21,10 @@ def init_db():
         tier TEXT NOT NULL CHECK(tier IN ('easy', 'medium', 'hard')),
         status TEXT NOT NULL DEFAULT 'invited',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        room TEXT,
+        likes TEXT,
+        dislikes TEXT,
+        off_limits TEXT,
         chat_mode TEXT NOT NULL DEFAULT 'none' CHECK(chat_mode IN('none', 'mortal', 'angel'))
     );
 
@@ -54,12 +58,21 @@ def init_db():
 
 
 def import_participants(participants: list[dict]):
-    """participants: [{"name": ..., "username": ..., "tier": ...}, ...]"""
     conn = get_connection()
     for p in participants:
         conn.execute(
-            "INSERT INTO participants (real_name, telegram_username, tier) VALUES (?, ?, ?)",
-            (p["name"].strip(), p["username"].strip().lstrip("@").lower(), p["tier"].strip().lower()),
+            """INSERT INTO participants
+               (real_name, telegram_username, tier, room, likes, dislikes, off_limits)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                p["name"].strip(),
+                p["username"].strip().lstrip("@").lower(),
+                p["tier"].strip().lower(),
+                p.get("room", "").strip(),
+                p.get("likes", "").strip(),
+                p.get("dislikes", "").strip(),
+                p.get("off_limits", "").strip(),
+            ),
         )
     conn.commit()
     conn.close()
@@ -128,7 +141,7 @@ def claim_participant(participant_id: int, telegram_user_id: int):
 def get_my_mortal(participant_id: int):
     conn = get_connection()
     row = conn.execute("""
-        SELECT p2.id, p2.real_name, p2.telegram_user_id
+        SELECT p2.id, p2.real_name, p2.telegram_user_id, p2.tier, p2.room, p2.likes, p2.dislikes, p2.off_limits
         FROM pairings p JOIN participants p2 ON p.mortal_id = p2.id
         WHERE p.angel_id = ?
     """, (participant_id,)).fetchone()
@@ -220,7 +233,7 @@ def mark_dropped(participant_id: int):
     conn.execute("UPDATE participants SET status = 'dropped' WHERE id = ?", (participant_id,))
     conn.commit()
     conn.close()
-    
+
 if __name__ == "__main__":
     init_db()
     print("Database initialized at", DB_PATH)

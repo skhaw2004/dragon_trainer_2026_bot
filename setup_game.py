@@ -2,11 +2,21 @@ from db import init_db, import_participants, get_participant_by_name, get_partic
 from matching import load_manual_pairings, validate_full_coverage
 
 PARTICIPANTS = [
-    {"name": "Stuart", "username": "liyouzh1", "tier": "easy"},
-    {"name": "Bob", "username": "bob_tg", "tier": "easy"},
-    {"name": "Charlie", "username": "charlie_tg", "tier": "easy"},
-    {"name": "Dana", "username": "dana_tg", "tier": "easy"},
-    #placeholder names
+    {"name": "Stuart", "username": "liyouzh1", "tier": "easy",
+     "room": "16-04", "likes": "boba, cats, K-pop",
+     "dislikes": "coffee, horror movies", "off_limits": "no nut allergy gifts"},
+
+    {"name": "Bob", "username": "bob_tg", "tier": "easy",
+     "room": "16-10", "likes": "video games, pizza, dogs",
+     "dislikes": "spicy food, early mornings", "off_limits": "no alcohol-related gifts"},
+
+    {"name": "Charlie", "username": "charlie_tg", "tier": "easy",
+     "room": "17-09", "likes": "anime, bubble tea, board games",
+     "dislikes": "seafood, loud parties", "off_limits": "no shellfish (allergy)"},
+
+    {"name": "Dana", "username": "dana_tg", "tier": "easy",
+     "room": "15-03", "likes": "reading, plants, matcha",
+     "dislikes": "clowns, crowded places", "off_limits": "no surprise visits after 10pm"},
 ]
 
 PAIRINGS = [

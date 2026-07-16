@@ -4,7 +4,7 @@ from config import ADMIN_IDS
 from db import get_participant_by_telegram_id, get_my_mortal, get_my_angel, log_message, set_chat_mode, get_last_received_message, mark_message_reported, get_participant_by_id
 
 MORTAL_BUTTON = "🐉 Chat with your Dragon"
-ANGEL_BUTTON = "🎓 Chat with your Trainer"
+ANGEL_BUTTON = "🏋️ Chat with your Trainer"
 IDLE_SECONDS = 120
 
 MENU_KEYBOARD = ReplyKeyboardMarkup([[MORTAL_BUTTON, ANGEL_BUTTON]], resize_keyboard=True)
@@ -57,7 +57,7 @@ async def relay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         set_chat_mode(sender["id"], "mortal")
         reset_idle_timer(context, update.effective_user.id, sender["id"])
         await update.message.reply_text(
-            "You've been connected with your dragon. Anything you type here will be sent "
+            "You've been connected with your dragon 🐉. Anything you type here will be sent "
             "anonymously to them.\nTo exit, type /done"
         )
         return
@@ -66,7 +66,7 @@ async def relay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         set_chat_mode(sender["id"], "angel")
         reset_idle_timer(context, update.effective_user.id, sender["id"])
         await update.message.reply_text(
-            "You've been connected with your trainer. Anything you type here will be sent "
+            "You've been connected with your trainer 🏋️. Anything you type here will be sent "
             "anonymously to them.\nTo exit, type /done"
         )
         return
