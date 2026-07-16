@@ -173,6 +173,31 @@ def log_message(from_id: int, to_id: int, content_type: str, content: str):
     conn.commit()
     conn.close()
 
+def get_last_received_message(participant_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM message_log WHERE to_id = ? ORDER BY sent_at DESC LIMIT 1",
+        (participant_id,),
+    ).fetchone()
+    conn.close()
+    return row
+
+
+def mark_message_reported(message_id: int):
+    conn = get_connection()
+    conn.execute("UPDATE message_log SET reported = 1 WHERE id = ?", (message_id,))
+    conn.commit()
+    conn.close()
+
+
+def get_participant_by_id(participant_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, real_name, telegram_username, telegram_user_id FROM participants WHERE id = ?",
+        (participant_id,),
+    ).fetchone()
+    conn.close()
+    return row
 
 if __name__ == "__main__":
     init_db()

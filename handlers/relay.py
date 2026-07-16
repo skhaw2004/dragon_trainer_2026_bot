@@ -1,6 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
-from db import get_participant_by_telegram_id, get_my_mortal, get_my_angel, log_message, set_chat_mode
+from config import ADMIN_IDS
+from db import get_participant_by_telegram_id, get_my_mortal, get_my_angel, log_message, set_chat_mode, get_last_received_message, mark_message_reported, get_participant_by_id
 
 MORTAL_BUTTON = "🐉 Chat with your Dragon"
 ANGEL_BUTTON = "🎓 Chat with your Trainer"
@@ -107,3 +108,31 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("You're not connected to anyone right now. Type /menu to choose.")
     else:
         await update.message.reply_text(f"You're currently connected to: your {sender['chat_mode']}.")
+
+async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    sender = get_participant_by_telegram_id(update.effective_user.id)
+    if sender is None:
+        await update.message.reply_text("I don't recognize you — message /start first.")
+        return
+
+    msg = get_last_received_message(sender["id"])
+    if msg is None:
+        await update.message.reply_text("You haven't received any messages yet to report.")
+        return
+
+    mark_message_reported(msg["id"])
+    reported_sender = get_participant_by_id(msg["from_id"])
+    header = (
+        f"🚩 Report from {sender['real_name']} (@{sender['telegram_username']}):\n"
+        f"Message was from {reported_sender['real_name']} (@{reported_sender['telegram_username']}), "
+        f"sent at {msg['sent_at']}"
+    )
+
+    for admin_id in ADMIN_IDS:
+        await context.bot.send_message(admin_id, header)
+        if msg["content_type"] == "photo":
+            await context.bot.send_photo(admin_id, msg["content"])
+        else:
+            await context.bot.send_message(admin_id, msg["content"])
+
+    await update.message.reply_text("Thanks, I've flagged this to the host.")
