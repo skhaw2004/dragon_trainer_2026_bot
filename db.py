@@ -41,13 +41,12 @@ def init_db():
         FOREIGN KEY (from_id) REFERENCES participants(id),
         FOREIGN KEY (to_id) REFERENCES participants(id)
     );
-                       
+
     CREATE VIEW IF NOT EXISTS pairings_readable AS
     SELECT a.real_name AS angel_name, m.real_name AS mortal_name
     FROM pairings p
     JOIN participants a ON p.angel_id = a.id
     JOIN participants m ON p.mortal_id = m.id;
-                       
     """)
     conn.commit()
     conn.close()
@@ -92,6 +91,18 @@ def get_participant_ids_by_tier(tier: str) -> list[int]:
     conn.close()
     return [row["id"] for row in rows]
 
+
+def save_pairings(pairings: dict[int, int]):
+    conn = get_connection()
+    conn.execute("DELETE FROM pairings")
+    conn.executemany(
+        "INSERT INTO pairings (angel_id, mortal_id) VALUES (?, ?)",
+        list(pairings.items()),
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_pairings_with_names():
     conn = get_connection()
     rows = conn.execute("""
@@ -104,12 +115,11 @@ def get_pairings_with_names():
     return [(row["angel_name"], row["mortal_name"]) for row in rows]
 
 
-def save_pairings(pairings: dict[int, int]):
+def claim_participant(participant_id: int, telegram_user_id: int):
     conn = get_connection()
-    conn.execute("DELETE FROM pairings")  # clear out any previous run first
-    conn.executemany(
-        "INSERT INTO pairings (angel_id, mortal_id) VALUES (?, ?)",
-        list(pairings.items()),
+    conn.execute(
+        "UPDATE participants SET telegram_user_id = ?, status = 'claimed' WHERE id = ?",
+        (telegram_user_id, participant_id),
     )
     conn.commit()
     conn.close()
