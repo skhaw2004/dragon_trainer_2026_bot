@@ -240,7 +240,6 @@ def get_all_participants():
     conn.close()
     return rows
 
-
 def mark_dropped(participant_id: int):
     conn = get_connection()
     conn.execute("UPDATE participants SET status = 'dropped' WHERE id = ?", (participant_id,))
@@ -261,7 +260,6 @@ def log_unrecognized_attempt(telegram_user_id: int, telegram_username: str):
     )
     conn.commit()
     conn.close()
-
 
 def get_unrecognized_attempts():
     conn = get_connection()

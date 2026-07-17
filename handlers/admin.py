@@ -8,6 +8,7 @@ from db import (
     get_all_pairings,
     save_pairings,
     mark_dropped,
+    get_all_participants,
     get_unrecognized_attempts
 )
 from matching import remove_participant
