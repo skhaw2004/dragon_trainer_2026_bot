@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from db import get_participant_by_username, claim_participant, get_my_mortal
+from db import get_participant_by_username, claim_participant, get_my_mortal, log_unrecognized_attempt
 from handlers.relay import MENU_KEYBOARD
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -8,6 +8,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     participant = get_participant_by_username(user.username or "")
 
     if participant is None:
+        log_unrecognized_attempt(user.id, user.username)
         await update.message.reply_text(
             "Your username could not be found! Make sure your Telegram username matches what you put on the "
             "Google Form. \n\n"

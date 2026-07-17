@@ -46,6 +46,13 @@ def init_db():
         FOREIGN KEY (from_id) REFERENCES participants(id),
         FOREIGN KEY (to_id) REFERENCES participants(id)
     );
+                       
+    CREATE TABLE IF NOT EXISTS unrecognized_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        telegram_user_id INTEGER,
+        telegram_username TEXT,
+        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
     CREATE VIEW IF NOT EXISTS pairings_readable AS
     SELECT a.real_name AS angel_name, m.real_name AS mortal_name
@@ -245,6 +252,24 @@ def has_participants() -> bool:
     row = conn.execute("SELECT COUNT(*) as cnt FROM participants").fetchone()
     conn.close()
     return row["cnt"] > 0
+
+def log_unrecognized_attempt(telegram_user_id: int, telegram_username: str):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO unrecognized_attempts (telegram_user_id, telegram_username) VALUES (?, ?)",
+        (telegram_user_id, telegram_username or ""),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_unrecognized_attempts():
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT telegram_user_id, telegram_username, attempted_at FROM unrecognized_attempts ORDER BY attempted_at DESC"
+    ).fetchall()
+    conn.close()
+    return rows
 
 if __name__ == "__main__":
     init_db()

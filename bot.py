@@ -5,7 +5,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from config import BOT_TOKEN
 from handlers.registration import start, rules
 from handlers.relay import relay, whoami, menu, done, report
-from handlers.admin import export_pairings, broadcast, reassign, roster
+from handlers.admin import export_pairings, broadcast, reassign, roster, unmatched
 from setup_game import setup
 
 health_app = Flask(__name__)
@@ -32,6 +32,7 @@ def main():
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("reassign", reassign))
     app.add_handler(CommandHandler("roster", roster))
+    app.add_handler(CommandHandler("unmatched", unmatched))
     app.add_handler(MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.PHOTO, relay))
     app.run_polling()
 

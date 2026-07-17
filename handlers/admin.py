@@ -8,6 +8,7 @@ from db import (
     get_all_pairings,
     save_pairings,
     mark_dropped,
+    get_unrecognized_attempts
 )
 from matching import remove_participant
 
@@ -80,4 +81,17 @@ async def roster(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No participants loaded yet.")
         return
     lines = [f"{p['real_name']} ({p['tier']}) — {p['status']}" for p in participants]
+    await update.message.reply_text("\n".join(lines))
+
+async def unmatched(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+    attempts = get_unrecognized_attempts()
+    if not attempts:
+        await update.message.reply_text("No unrecognized attempts logged.")
+        return
+    lines = [
+        f"@{a['telegram_username'] or '(no username)'} (id {a['telegram_user_id']}) at {a['attempted_at']}"
+        for a in attempts
+    ]
     await update.message.reply_text("\n".join(lines))
