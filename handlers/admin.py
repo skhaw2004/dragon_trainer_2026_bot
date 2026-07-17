@@ -71,3 +71,13 @@ async def reassign(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"{name} has been removed. Their angel is now connected directly to their old mortal."
     )
+
+async def roster(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        return
+    participants = get_all_participants()
+    if not participants:
+        await update.message.reply_text("No participants loaded yet.")
+        return
+    lines = [f"{p['real_name']} ({p['tier']}) — {p['status']}" for p in participants]
+    await update.message.reply_text("\n".join(lines))

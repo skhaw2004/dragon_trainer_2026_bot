@@ -227,6 +227,12 @@ def get_all_pairings() -> dict[int, int]:
     conn.close()
     return {row["angel_id"]: row["mortal_id"] for row in rows}
 
+def get_all_participants():
+    conn = get_connection()
+    rows = conn.execute("SELECT real_name, tier, status FROM participants ORDER BY real_name").fetchall()
+    conn.close()
+    return rows
+
 
 def mark_dropped(participant_id: int):
     conn = get_connection()
