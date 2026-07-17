@@ -1,4 +1,4 @@
-from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings, get_pairings_with_names
+from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings, get_pairings_with_names, has_participants
 from matching import load_manual_pairings, validate_full_coverage
 
 PARTICIPANTS = [
@@ -33,10 +33,13 @@ PAIRINGS = [
     #hard
 ]
 
-if __name__ == "__main__":
+def setup():
     init_db()
-    import_participants(PARTICIPANTS)
+    if has_participants():
+        print("Participants already loaded, skipping setup.")
+        return
 
+    import_participants(PARTICIPANTS)
     all_pairings = load_manual_pairings(PAIRINGS, get_participant_by_name)
 
     for tier in ("easy", "medium", "hard"):
@@ -46,5 +49,8 @@ if __name__ == "__main__":
 
     save_pairings(all_pairings)
     for angel_name, mortal_name in get_pairings_with_names():
-        print(f"Dragon:{angel_name} -> Trainer:{mortal_name}")
+        print(f"{angel_name} -> {mortal_name}")
     print(f"Loaded {len(PARTICIPANTS)} participants and {len(all_pairings)} pairings.")
+
+if __name__ == "__main__":
+    setup()

@@ -6,6 +6,7 @@ from config import BOT_TOKEN
 from handlers.registration import start, rules
 from handlers.relay import relay, whoami, menu, done, report
 from handlers.admin import export_pairings, broadcast, reassign
+from setup_game import setup
 
 health_app = Flask(__name__)
 
@@ -18,6 +19,7 @@ def run_health_server():
     health_app.run(host="0.0.0.0", port=port)
 
 def main():
+    setup()
     threading.Thread(target=run_health_server, daemon=True).start()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))

@@ -234,6 +234,12 @@ def mark_dropped(participant_id: int):
     conn.commit()
     conn.close()
 
+def has_participants() -> bool:
+    conn = get_connection()
+    row = conn.execute("SELECT COUNT(*) as cnt FROM participants").fetchone()
+    conn.close()
+    return row["cnt"] > 0
+
 if __name__ == "__main__":
     init_db()
     print("Database initialized at", DB_PATH)
