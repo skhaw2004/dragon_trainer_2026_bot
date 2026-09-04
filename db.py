@@ -293,7 +293,8 @@ def get_my_angel(participant_id: int):
 def get_participant_by_telegram_id(telegram_user_id: int):
     conn = get_connection()
     row = conn.execute(
-        "SELECT id, real_name, chat_mode, telegram_user_id FROM participants WHERE telegram_user_id = ?",
+        "SELECT id, real_name, telegram_username, chat_mode, telegram_user_id "
+        "FROM participants WHERE telegram_user_id = ?",
         (telegram_user_id,),
     ).fetchone()
     conn.close()
