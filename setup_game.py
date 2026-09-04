@@ -12,7 +12,7 @@ from db import (
     TIERS,
 )
 from matching import check_tier_sizes, generate_pairings, validate_full_coverage
-from signups import load_signups
+from signups import SIGNUPS_PATH, load_signups
 
 
 def setup():
@@ -27,6 +27,15 @@ def setup():
         return
 
     participants = load_signups()
+
+    # Report what was actually read before validating it. Render's Shell can
+    # only attach to a running instance, so when setup fails the bot crash-loops
+    # and the shell is unavailable exactly when it would be most useful. The log
+    # has to carry enough to diagnose a bad export on its own.
+    counts = collections.Counter(normalize_tier(p["tier"]) for p in participants)
+    print(f"Read {SIGNUPS_PATH} ({SIGNUPS_PATH.stat().st_size} bytes): "
+          f"{len(participants)} participants, tiers "
+          f"{ {t: counts.get(t, 0) for t in TIERS} }")
 
     # Check what can be checked before writing anything, so the usual failure
     # (a tier too small to match) never touches the database at all.
