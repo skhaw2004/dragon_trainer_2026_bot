@@ -1,7 +1,13 @@
+import os
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "game.db"
+# On Render the database must live on the mounted persistent disk, otherwise it
+# is wiped on every deploy/restart. DB_DIR points at that mount in production;
+# locally it is unset and the database stays next to the code as before.
+DB_DIR = Path(os.environ.get("DB_DIR") or Path(__file__).parent)
+DB_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = DB_DIR / "game.db"
 
 
 def get_connection():
@@ -182,6 +188,22 @@ def set_chat_mode(participant_id: int, mode: str):
     conn.execute("UPDATE participants SET chat_mode = ? WHERE id = ?", (mode, participant_id))
     conn.commit()
     conn.close()
+
+
+def reset_all_chat_modes() -> int:
+    """Clear connections left dangling by a restart.
+
+    chat_mode is stored in the database, but the idle-disconnect timers are
+    in-memory APScheduler jobs that die with the process. Without this, anyone
+    connected when the bot restarts stays connected indefinitely, and their next
+    message — possibly hours later — silently goes to their dragon or trainer.
+    """
+    conn = get_connection()
+    cur = conn.execute("UPDATE participants SET chat_mode = 'none' WHERE chat_mode != 'none'")
+    cleared = cur.rowcount
+    conn.commit()
+    conn.close()
+    return cleared
 
 
 def log_message(from_id: int, to_id: int, content_type: str, content: str):

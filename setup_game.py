@@ -1,4 +1,4 @@
-from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings, get_pairings_with_names, has_participants
+from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings, get_pairings_with_names, has_participants, reset_all_chat_modes
 from matching import load_manual_pairings, validate_full_coverage
 
 PARTICIPANTS = [
@@ -35,6 +35,11 @@ PAIRINGS = [
 
 def setup():
     init_db()
+
+    cleared = reset_all_chat_modes()
+    if cleared:
+        print(f"Cleared {cleared} stale chat connection(s) left over from the last run.")
+
     if has_participants():
         print("Participants already loaded, skipping setup.")
         return
