@@ -12,6 +12,7 @@ from db import (
     get_unrecognized_attempts
 )
 from matching import remove_participant
+from handlers.chunking import reply_chunks, send_chunks
 
 
 def is_admin(user_id: int) -> bool:
@@ -41,7 +42,7 @@ async def export_pairings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if flagged:
         lines.append(f"\n⚠️ {flagged} dragon(s) asked for a same-gender trainer — "
                      f"check those pairings yourself.")
-    await update.message.reply_text("\n".join(lines))
+    await reply_chunks(update.message, "\n".join(lines))
 
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,7 +57,8 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sent = 0
     for p in participants:
         try:
-            await context.bot.send_message(p["telegram_user_id"], f"📢 Admin Broadcast: \n{message_text}")
+            await send_chunks(context.bot, p["telegram_user_id"],
+                              f"📢 Admin Broadcast: \n{message_text}")
             sent += 1
         except Exception:
             pass  # e.g. they've blocked the bot
@@ -97,7 +99,7 @@ async def roster(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No participants loaded yet.")
         return
     lines = [f"{p['real_name']} ({p['tier']}) — {p['status']}" for p in participants]
-    await update.message.reply_text("\n".join(lines))
+    await reply_chunks(update.message, "\n".join(lines))
 
 async def unmatched(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
@@ -110,4 +112,4 @@ async def unmatched(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"@{a['telegram_username'] or '(no username)'} (id {a['telegram_user_id']}) at {a['attempted_at']}"
         for a in attempts
     ]
-    await update.message.reply_text("\n".join(lines))
+    await reply_chunks(update.message, "\n".join(lines))
