@@ -53,7 +53,10 @@ def main():
     app.add_handler(CommandHandler("reassign", reassign))
     app.add_handler(CommandHandler("roster", roster))
     app.add_handler(CommandHandler("unmatched", unmatched))
-    app.add_handler(MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.PHOTO, relay))
+    # Everything that is not a command reaches the relay, so an unsupported
+    # message gets an explanation instead of being silently dropped.
+    app.add_handler(MessageHandler(
+        ~filters.COMMAND & ~filters.StatusUpdate.ALL, relay))
     app.run_polling()
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 from config import ADMIN_IDS
 from handlers.chunking import reply_chunks, send_chunks
+from handlers.media import find_media, label_for, leaks_metadata, send_media
 from db import get_participant_by_telegram_id, get_my_mortal, get_my_angel, log_message, set_chat_mode, get_last_received_message, mark_message_reported, get_participant_by_id
 
 MORTAL_BUTTON = "🐉 Chat with your Dragon"
@@ -95,10 +96,35 @@ async def relay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_chunks(context.bot, recipient["telegram_user_id"],
                           f"💌 Message from {sender_label}:\n\n{update.message.text}")
         log_message(sender["id"], recipient["id"], "text", update.message.text)
-    elif update.message.photo:
-        file_id = update.message.photo[-1].file_id
-        await context.bot.send_photo(recipient["telegram_user_id"], file_id, caption=f"💌 Photo from {sender_label}")
-        log_message(sender["id"], recipient["id"], "photo", file_id)
+        return
+
+    kind, file_id = find_media(update.message)
+    if kind is None:
+        # Locations, contacts, polls and the like have no anonymous equivalent.
+        # Say so — silence is indistinguishable from the bot being broken.
+        await update.message.reply_text(
+            "I can only pass on text, photos, stickers, GIFs, voice notes, "
+            "videos, audio and files. That one didn't go through — try "
+            "sending it another way."
+        )
+        return
+
+    # The sender's own caption used to be discarded entirely.
+    header = f"💌 {label_for(kind)} from {sender_label}"
+    caption = f"{header}:\n\n{update.message.caption}" if update.message.caption else header
+
+    overflow = await send_media(context.bot, recipient["telegram_user_id"],
+                                kind, file_id, caption)
+    if overflow:
+        await send_chunks(context.bot, recipient["telegram_user_id"], overflow)
+    log_message(sender["id"], recipient["id"], kind, file_id)
+
+    if leaks_metadata(kind):
+        await update.message.reply_text(
+            f"⚠️ Sent — but {label_for(kind).lower()}s carry their file name and "
+            f"details, which your recipient can see. Rename before sending if "
+            f"it gives you away."
+        )
 
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -132,9 +158,9 @@ async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for admin_id in ADMIN_IDS:
         await context.bot.send_message(admin_id, header)
-        if msg["content_type"] == "photo":
-            await context.bot.send_photo(admin_id, msg["content"])
-        else:
+        if msg["content_type"] == "text":
             await send_chunks(context.bot, admin_id, msg["content"])
+        else:
+            await send_media(context.bot, admin_id, msg["content_type"], msg["content"])
 
     await update.message.reply_text("Thanks, I've flagged this to the host.")
