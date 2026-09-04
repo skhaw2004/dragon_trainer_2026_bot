@@ -24,7 +24,7 @@ def init_db():
         real_name TEXT NOT NULL,
         telegram_username TEXT UNIQUE NOT NULL,
         telegram_user_id INTEGER,
-        tier TEXT NOT NULL CHECK(tier IN ('easy', 'medium', 'hard')),
+        tier TEXT NOT NULL CHECK(tier IN ('low', 'medium', 'high')),
         status TEXT NOT NULL DEFAULT 'invited',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         room TEXT,
@@ -68,6 +68,27 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+    _assert_tiers_current()
+
+
+def _assert_tiers_current():
+    """Fail loudly if the database predates the low/medium/high tier rename.
+
+    init_db() uses CREATE TABLE IF NOT EXISTS, which will not alter an existing
+    table, so an old database silently keeps the easy/medium/hard constraint and
+    rejects real signup data with a confusing IntegrityError. Say what to do.
+    """
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='participants'"
+    ).fetchone()
+    conn.close()
+    if row and "'easy'" in row["sql"]:
+        raise RuntimeError(
+            f"{DB_PATH} was created with the old easy/medium/hard tiers and cannot "
+            f"accept low/medium/high signups. Delete it and let it be recreated:\n"
+            f"    rm {DB_PATH}"
+        )
 
 
 def import_participants(participants: list[dict]):
