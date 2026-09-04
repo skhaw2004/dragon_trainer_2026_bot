@@ -19,13 +19,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     claim_participant(participant["id"], user.id)
     mortal = get_my_mortal(participant["id"])
     if mortal:
+        room_rule = (
+            "✅ Room entry: they HAVE consented to you entering their room."
+            if mortal["room_consent"]
+            else "⛔ Room entry: they have NOT consented. Do NOT enter their room "
+                 "under any circumstances."
+        )
         mortal_details = (
             f"Your dragon is: {mortal['real_name']}\n"
             f"🏠 Lair (room): {mortal['room']}\n"
-            f"❤️ Loves: {mortal['likes']}\n"
-            f"💔 Dislikes: {mortal['dislikes']}\n"
-            f"🚫 Off-limits (never do this): {mortal['off_limits']}\n"
-            f"🎯 Tier: {mortal['tier']}"
+            f"{room_rule}\n"
+            f"🍦 Welfare likes & dislikes: {mortal['welfare_prefs']}\n"
+            f"🎁 Surprise preferences & No-Gos: {mortal['surprise_prefs']}\n"
+            f"🎯 Commitment level: {mortal['tier']}"
         )
     else:
         mortal_details = "Your dragon is: someone — something's off, tell the host"
@@ -46,7 +52,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Do contact us should you need assistance in taming your dragon. \n\n"
         "And remember — the best "
         "Trainers never reveal themselves before the feast. 🔥 \n\n"
-        "IMPORTANT: PLEASE ASK YOUR DRAGON FOR CONSENT BEFORE ENTERING THEIR ROOM THANKS",
+        "IMPORTANT: respect the room-entry line above — it is your dragon's own "
+        "answer, not a suggestion. Follow their No-Gos strictly.",
         reply_markup=MENU_KEYBOARD,
     )
 

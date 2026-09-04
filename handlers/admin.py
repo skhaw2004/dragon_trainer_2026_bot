@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from config import ADMIN_IDS
 from db import (
-    get_pairings_with_names,
+    get_pairings_for_review,
     get_all_claimed_participants,
     get_participant_by_name,
     get_all_pairings,
@@ -21,12 +21,27 @@ def is_admin(user_id: int) -> bool:
 async def export_pairings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
-    pairs = get_pairings_with_names()
-    if not pairs:
+    rows = get_pairings_for_review()
+    if not rows:
         await update.message.reply_text("No pairings loaded yet.")
         return
-    text = "\n".join(f"{angel} -> {mortal}" for angel, mortal in pairs)
-    await update.message.reply_text(text)
+
+    lines, flagged = [], 0
+    for r in rows:
+        line = f"[{r['tier']}] {r['angel_name']} -> {r['mortal_name']}"
+        if not r["mortal_gender_ok"]:
+            # Gender is not recorded, so this cannot be enforced automatically.
+            # Flag it so the host can check the trainer by hand.
+            line += "  ⚠️ wants same-gender trainer"
+            flagged += 1
+        if r["mortal_notes"]:
+            line += f"  📝 {r['mortal_notes']}"
+        lines.append(line)
+
+    if flagged:
+        lines.append(f"\n⚠️ {flagged} dragon(s) asked for a same-gender trainer — "
+                     f"check those pairings yourself.")
+    await update.message.reply_text("\n".join(lines))
 
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
