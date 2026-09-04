@@ -2,19 +2,19 @@ from db import init_db, import_participants, get_participant_by_name, get_partic
 from matching import load_manual_pairings, validate_full_coverage
 
 PARTICIPANTS = [
-    {"name": "Stuart", "username": "liyouzh1", "tier": "easy",
+    {"name": "Stuart", "username": "liyouzh1", "tier": "low",
      "room": "16-04", "likes": "boba, cats, K-pop",
      "dislikes": "coffee, horror movies", "off_limits": "no nut allergy gifts"},
 
-    {"name": "Bob", "username": "bob_tg", "tier": "easy",
+    {"name": "Bob", "username": "bob_tg", "tier": "low",
      "room": "16-10", "likes": "video games, pizza, dogs",
      "dislikes": "spicy food, early mornings", "off_limits": "no alcohol-related gifts"},
 
-    {"name": "Charlie", "username": "charlie_tg", "tier": "easy",
+    {"name": "Charlie", "username": "charlie_tg", "tier": "low",
      "room": "17-09", "likes": "anime, bubble tea, board games",
      "dislikes": "seafood, loud parties", "off_limits": "no shellfish (allergy)"},
 
-    {"name": "Dana", "username": "dana_tg", "tier": "easy",
+    {"name": "Dana", "username": "dana_tg", "tier": "low",
      "room": "15-03", "likes": "reading, plants, matcha",
      "dislikes": "clowns, crowded places", "off_limits": "no surprise visits after 10pm"},
 ]
@@ -26,11 +26,11 @@ PAIRINGS = [
     ("Dana", "Stuart"),
     #placeholder pairings
 
-    #easy
+    #low
 
     #medium
 
-    #hard
+    #high
 ]
 
 def setup():
@@ -47,7 +47,7 @@ def setup():
     import_participants(PARTICIPANTS)
     all_pairings = load_manual_pairings(PAIRINGS, get_participant_by_name)
 
-    for tier in ("easy", "medium", "hard"):
+    for tier in ("low", "medium", "high"):
         tier_ids = get_participant_ids_by_tier(tier)
         tier_pairings = {a: m for a, m in all_pairings.items() if a in tier_ids}
         validate_full_coverage(tier_pairings, tier_ids)
