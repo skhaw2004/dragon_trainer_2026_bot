@@ -109,12 +109,15 @@ Columns are located by a distinctive fragment of the question text, not the full
 | `/export` | Full pairing list, flagged ⚠️ where a Dragon asked for a same-gender Trainer and 📝 with their signup notes |
 | `/broadcast <message>` | Announce to every claimed participant, paced to stay under Telegram's rate limit. Reports who blocked the bot, who failed, and who has never sent `/start` and so cannot be reached at all. |
 | `/reassign <name>` | Remove a dropout, splicing their Trainer directly to their old Dragon |
+| `/swap <name> \| <name>` | Exchange two people's places in the cycle, to repair a pairing by hand |
 
 ## What the bot cannot enforce
 
 The form asks whether someone is comfortable with a Trainer of the opposite gender, but **it does not collect anyone's gender**, so this cannot be honoured automatically. `/export` flags those rows instead — read it after generating pairings and check those matches by hand.
 
 Free-text signup notes ("please don't pair me with X") are shown next to the pairing they concern, for the same reason.
+
+When a flagged pairing is wrong, `/swap` exchanges two people's places in the cycle to repair it. It refuses to swap across commitment levels, and rebuilds the whole cycle rather than re-pointing individual edges, so the result is always a valid cycle.
 
 ## Deployment
 

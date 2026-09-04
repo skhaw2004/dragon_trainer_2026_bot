@@ -12,10 +12,12 @@ from db import (
     save_pairings,
     mark_dropped,
     get_all_participants,
+    get_participant_by_id,
     get_unrecognized_attempts,
     get_all_participants,
+    get_participant_by_id,
 )
-from matching import remove_participant
+from matching import remove_participant, swap_participants
 from handlers.chunking import reply_chunks, send_chunks
 
 
@@ -162,4 +164,64 @@ async def unmatched(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"@{a['telegram_username'] or '(no username)'} (id {a['telegram_user_id']}) at {a['attempted_at']}"
         for a in attempts
     ]
+    await reply_chunks(update.message, "\n".join(lines))
+
+async def swap(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Exchange two people's places in the cycle, to repair a pairing by hand.
+
+    The opposite-gender preference cannot be enforced automatically — no gender
+    is recorded — so /export flags who asked and this fixes the ones that are
+    actually wrong.
+    """
+    if not is_admin(update.effective_user.id):
+        return
+
+    raw = " ".join(context.args)
+    if "|" not in raw:
+        await update.message.reply_text(
+            "Usage: /swap <name> | <name>\n\n"
+            "Names must match /roster exactly, separated by a vertical bar — "
+            "names contain spaces, so the bar is what tells them apart.\n"
+            "Example: /swap Tan Cher Hean | Zhang Xinyun"
+        )
+        return
+
+    name_a, name_b = (part.strip() for part in raw.split("|", 1))
+    people = {}
+    for name in (name_a, name_b):
+        person = get_participant_by_name(name)
+        if person is None:
+            await update.message.reply_text(
+                f"No participant named '{name}'. Names must match /roster exactly."
+            )
+            return
+        people[name] = person
+
+    pairings = get_all_pairings()
+    try:
+        updated = swap_participants(pairings, people[name_a]["id"], people[name_b]["id"])
+    except ValueError as e:
+        await update.message.reply_text(f"Can't swap those: {e}.")
+        return
+
+    # Report the change from each affected person's point of view, before and
+    # after, so the result can be checked rather than taken on trust.
+    changed = [a for a in updated if updated[a] != pairings[a]]
+    lines = ["✅ Swapped. Trainer -> dragon changes:"]
+    for angel_id in changed:
+        angel = get_participant_by_id(angel_id)
+        was = get_participant_by_id(pairings[angel_id])
+        now = get_participant_by_id(updated[angel_id])
+        lines.append(f"  {angel['real_name']}: {was['real_name']} -> {now['real_name']}")
+
+    save_pairings(updated)
+
+    claimed = [get_participant_by_id(a)["real_name"] for a in changed
+               if get_participant_by_id(a)["telegram_user_id"] is not None]
+    if claimed:
+        lines.append(
+            f"\n⚠️ Already claimed, so they have seen their old dragon and must "
+            f"be told: " + ", ".join(claimed)
+        )
+    lines.append("\nRun /export to check the result.")
     await reply_chunks(update.message, "\n".join(lines))

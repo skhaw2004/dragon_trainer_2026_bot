@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from config import BOT_TOKEN
 from handlers.registration import start, rules
 from handlers.relay import relay, whoami, menu, done, report
-from handlers.admin import export_pairings, broadcast, reassign, roster, unmatched
+from handlers.admin import export_pairings, broadcast, reassign, roster, unmatched, swap
 from setup_game import setup
 
 health_app = Flask(__name__)
@@ -51,6 +51,7 @@ def main():
     app.add_handler(CommandHandler("export", export_pairings))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("reassign", reassign))
+    app.add_handler(CommandHandler("swap", swap))
     app.add_handler(CommandHandler("roster", roster))
     app.add_handler(CommandHandler("unmatched", unmatched))
     # Everything that is not a command reaches the relay, so an unsupported
