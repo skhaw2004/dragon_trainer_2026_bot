@@ -1,4 +1,7 @@
+import asyncio
+
 from telegram import Update
+from telegram.error import Forbidden, RetryAfter, TelegramError
 from telegram.ext import ContextTypes
 from config import ADMIN_IDS
 from db import (
@@ -9,14 +12,33 @@ from db import (
     save_pairings,
     mark_dropped,
     get_all_participants,
-    get_unrecognized_attempts
+    get_unrecognized_attempts,
+    get_all_participants,
 )
 from matching import remove_participant
 from handlers.chunking import reply_chunks, send_chunks
 
 
+# Telegram allows roughly 30 messages per second across different chats. Pace
+# below that: a tight loop over 80 people trips flood control, and the previous
+# bare `except: pass` discarded those failures without a trace.
+SEND_INTERVAL = 0.05
+SEND_ATTEMPTS = 3
+
+
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
+
+
+async def _send_with_retry(bot, chat_id: int, text: str):
+    """Send, honouring Telegram's own back-off request if flood control trips."""
+    for attempt in range(SEND_ATTEMPTS):
+        try:
+            return await send_chunks(bot, chat_id, text)
+        except RetryAfter as e:
+            if attempt == SEND_ATTEMPTS - 1:
+                raise
+            await asyncio.sleep(e.retry_after + 1)
 
 
 async def export_pairings(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,15 +76,43 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     participants = get_all_claimed_participants()
-    sent = 0
+    if not participants:
+        await update.message.reply_text(
+            "Nobody has claimed their account yet, so there is no one to broadcast to. "
+            "Participants become reachable only after they send /start."
+        )
+        return
+
+    text = f"📢 Admin Broadcast: \n{message_text}"
+    sent, blocked, failed = 0, [], []
+
     for p in participants:
         try:
-            await send_chunks(context.bot, p["telegram_user_id"],
-                              f"📢 Admin Broadcast: \n{message_text}")
+            await _send_with_retry(context.bot, p["telegram_user_id"], text)
             sent += 1
-        except Exception:
-            pass  # e.g. they've blocked the bot
-    await update.message.reply_text(f"Broadcast sent to {sent}/{len(participants)} participants.")
+        except Forbidden:
+            # They blocked the bot or deleted the chat. Permanent; do not retry.
+            blocked.append(p["real_name"])
+        except (TelegramError, OSError) as e:
+            failed.append(f"{p['real_name']} ({type(e).__name__})")
+        await asyncio.sleep(SEND_INTERVAL)
+
+    lines = [f"📢 Broadcast finished.", f"✅ Delivered: {sent}/{len(participants)} claimed"]
+    if blocked:
+        lines.append(f"\n🚫 Blocked the bot ({len(blocked)}): " + ", ".join(blocked))
+    if failed:
+        lines.append(f"\n⚠️ Failed ({len(failed)}): " + ", ".join(failed))
+
+    # Unclaimed participants cannot be messaged at all — Telegram gives a bot no
+    # way to reach someone who has never messaged it. Say so explicitly, or a
+    # broadcast looks complete while silently missing people.
+    unclaimed = [r["real_name"] for r in get_all_participants() if r["status"] != "claimed"]
+    if unclaimed:
+        lines.append(
+            f"\n📭 Never reached, has not sent /start ({len(unclaimed)}): "
+            + ", ".join(unclaimed)
+        )
+    await reply_chunks(update.message, "\n".join(lines))
 
 
 async def reassign(update: Update, context: ContextTypes.DEFAULT_TYPE):
