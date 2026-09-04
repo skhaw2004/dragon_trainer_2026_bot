@@ -1,5 +1,9 @@
+import collections
+
 from db import (
     init_db,
+    clear_participants,
+    normalize_tier,
     import_participants,
     get_participant_ids_by_tier,
     save_pairings,
@@ -7,7 +11,7 @@ from db import (
     reset_all_chat_modes,
     TIERS,
 )
-from matching import generate_pairings, validate_full_coverage
+from matching import check_tier_sizes, generate_pairings, validate_full_coverage
 from signups import load_signups
 
 
@@ -23,18 +27,33 @@ def setup():
         return
 
     participants = load_signups()
-    import_participants(participants)
 
-    ids_by_tier = {tier: get_participant_ids_by_tier(tier) for tier in TIERS}
-    pairings = generate_pairings(ids_by_tier)
+    # Check what can be checked before writing anything, so the usual failure
+    # (a tier too small to match) never touches the database at all.
+    check_tier_sizes(collections.Counter(normalize_tier(p["tier"]) for p in participants))
 
-    # generate_pairings cannot produce an invalid cycle, but check anyway so the
-    # invariant stays enforced rather than assumed if that ever changes.
-    for tier, tier_ids in ids_by_tier.items():
-        tier_pairings = {a: m for a, m in pairings.items() if a in set(tier_ids)}
-        validate_full_coverage(tier_pairings, tier_ids)
+    # Importing participants and saving their pairings must succeed or fail
+    # together. Participants are committed first, so without this a later
+    # failure would leave people loaded with no pairings — and has_participants()
+    # would then treat that half-built game as complete and skip setup forever,
+    # leaving a bot that looks healthy and tells everyone their dragon is
+    # missing.
+    try:
+        import_participants(participants)
 
-    save_pairings(pairings)
+        ids_by_tier = {tier: get_participant_ids_by_tier(tier) for tier in TIERS}
+        pairings = generate_pairings(ids_by_tier)
+
+        # generate_pairings cannot produce an invalid cycle, but check anyway so
+        # the invariant stays enforced rather than assumed if that ever changes.
+        for tier, tier_ids in ids_by_tier.items():
+            tier_pairings = {a: m for a, m in pairings.items() if a in set(tier_ids)}
+            validate_full_coverage(tier_pairings, tier_ids)
+
+        save_pairings(pairings)
+    except Exception:
+        clear_participants()
+        raise
 
     for tier in TIERS:
         count = len(ids_by_tier[tier])

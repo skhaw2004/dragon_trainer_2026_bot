@@ -178,6 +178,15 @@ def import_participants(participants: list[dict]):
     conn.close()
 
 
+def clear_participants():
+    """Wipe participants and pairings, leaving no half-built game behind."""
+    conn = get_connection()
+    conn.execute("DELETE FROM pairings")
+    conn.execute("DELETE FROM participants")
+    conn.commit()
+    conn.close()
+
+
 def get_participant_by_name(name: str):
     conn = get_connection()
     row = conn.execute(
