@@ -6,6 +6,21 @@ import os
 import random
 
 
+MIN_TIER_SIZE = 3
+
+
+def check_tier_sizes(counts: dict) -> None:
+    """Reject tiers too small to form a cycle, before any work is done."""
+    for tier, n in sorted(counts.items()):
+        if 0 < n < MIN_TIER_SIZE:
+            raise ValueError(
+                f"tier {tier!r} has only {n} participant(s); at least "
+                f"{MIN_TIER_SIZE} are needed. One person would have to be their "
+                f"own dragon, and two would have to be each other's dragon and "
+                f"trainer."
+            )
+
+
 def generate_pairings(ids_by_tier: dict[str, list[int]],
                       rng: random.Random | None = None) -> dict[int, int]:
     """Assign everyone a dragon by shuffling each tier into a random cycle.
@@ -26,12 +41,7 @@ def generate_pairings(ids_by_tier: dict[str, list[int]],
     for tier, ids in sorted(ids_by_tier.items()):
         if not ids:
             continue
-        if len(ids) < 3:
-            raise ValueError(
-                f"tier {tier!r} has only {len(ids)} participant(s); at least 3 are "
-                f"needed. One person would have to be their own dragon, and two "
-                f"would have to be each other's dragon and trainer."
-            )
+        check_tier_sizes({tier: len(ids)})
         order = list(ids)
         rng.shuffle(order)
         for angel, mortal in zip(order, order[1:] + order[:1]):
