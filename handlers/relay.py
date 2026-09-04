@@ -1,6 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 from config import ADMIN_IDS
+from handlers.chunking import reply_chunks, send_chunks
 from db import get_participant_by_telegram_id, get_my_mortal, get_my_angel, log_message, set_chat_mode, get_last_received_message, mark_message_reported, get_participant_by_id
 
 MORTAL_BUTTON = "🐉 Chat with your Dragon"
@@ -91,7 +92,8 @@ async def relay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reset_idle_timer(context, update.effective_user.id, sender["id"])
 
     if update.message.text:
-        await context.bot.send_message(recipient["telegram_user_id"], f"💌 Message from {sender_label}:\n\n{update.message.text}")
+        await send_chunks(context.bot, recipient["telegram_user_id"],
+                          f"💌 Message from {sender_label}:\n\n{update.message.text}")
         log_message(sender["id"], recipient["id"], "text", update.message.text)
     elif update.message.photo:
         file_id = update.message.photo[-1].file_id
@@ -133,6 +135,6 @@ async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if msg["content_type"] == "photo":
             await context.bot.send_photo(admin_id, msg["content"])
         else:
-            await context.bot.send_message(admin_id, msg["content"])
+            await send_chunks(context.bot, admin_id, msg["content"])
 
     await update.message.reply_text("Thanks, I've flagged this to the host.")

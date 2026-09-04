@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from db import get_participant_by_username, claim_participant, get_my_mortal, log_unrecognized_attempt
 from handlers.relay import MENU_KEYBOARD
+from handlers.chunking import reply_chunks
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -36,7 +37,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         mortal_details = "Your dragon is: someone — something's off, tell the host"
 
-    await update.message.reply_text(
+    await reply_chunks(
+        update.message,
         f"🐉 Welcome to Draco's Dragon and Trainer 2026, {participant['real_name']}!\n\n"
         "The Draco Dragon Training Academy doesn't hand out assignments lightly — but you've been chosen. "
         "Somewhere out there, a dragon has been placed in your care. Not to ride. Not to tame. "
