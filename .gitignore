@@ -3,3 +3,12 @@ __pycache__/
 *.pyc
 .env
 game.db
+
+# Signup responses: real names, room numbers, Telegram handles and personal
+# preferences for ~80 students. This repo is public and git keeps history
+# forever, so these must never be committed. On Render, upload the same file
+# via Secret Files instead.
+signups.csv
+signups.xlsx
+*.csv
+*.xlsx
