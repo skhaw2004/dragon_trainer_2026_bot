@@ -1,34 +1,41 @@
-def load_manual_pairings(pairs: list[tuple[str, str]], get_participant_by_name) -> dict[int, int]:
-    """pairs: e.g. [("Alice", "Bob"), ("Bob", "Charlie")]"""
-    pairings = {}
-    mortals_seen = set()
+# `X | None` annotations are evaluated at runtime on Python 3.9 (the local
+# venv) but not on 3.10+; deferring annotations keeps both working.
+from __future__ import annotations
 
-    for angel_name, mortal_name in pairs:
-        angel = get_participant_by_name(angel_name)
-        mortal = get_participant_by_name(mortal_name)
+import os
+import random
 
-        if angel is None:
-            raise ValueError(f"No participant named '{angel_name}'")
-        if mortal is None:
-            raise ValueError(f"No participant named '{mortal_name}'")
-        if angel["id"] == mortal["id"]:
-            raise ValueError(f"{angel_name} can't be their own trainer")
-        if angel["tier"] != mortal["tier"]:
+
+def generate_pairings(ids_by_tier: dict[str, list[int]],
+                      rng: random.Random | None = None) -> dict[int, int]:
+    """Assign everyone a dragon by shuffling each tier into a random cycle.
+
+    Shuffling a tier and chaining it A->B->C->...->A gives, by construction,
+    exactly the properties the game needs: everyone is one person's trainer and
+    one person's dragon, nobody is their own, and in a cycle of three or more
+    nobody's dragon is also their trainer. Tiers never mix because each is
+    shuffled separately.
+
+    Set MATCH_SEED to reproduce a particular draw; otherwise it is random.
+    """
+    if rng is None:
+        seed = os.environ.get("MATCH_SEED")
+        rng = random.Random(seed) if seed else random.Random()
+
+    pairings: dict[int, int] = {}
+    for tier, ids in sorted(ids_by_tier.items()):
+        if not ids:
+            continue
+        if len(ids) < 3:
             raise ValueError(
-                f"{angel_name} ({angel['tier']}) and {mortal_name} ({mortal['tier']}) are in different tiers"
+                f"tier {tier!r} has only {len(ids)} participant(s); at least 3 are "
+                f"needed. One person would have to be their own dragon, and two "
+                f"would have to be each other's dragon and trainer."
             )
-        if angel["id"] in pairings:
-            raise ValueError(f"{angel_name} appears twice as an dragon")
-        if mortal["id"] in mortals_seen:
-            raise ValueError(f"{mortal_name} appears twice as a trainer")
-        if pairings.get(mortal["id"]) == angel["id"]:
-            raise ValueError(
-                f"{angel_name} and {mortal_name} are each other's dragon & trainer"
-            )
-
-        pairings[angel["id"]] = mortal["id"]
-        mortals_seen.add(mortal["id"])
-
+        order = list(ids)
+        rng.shuffle(order)
+        for angel, mortal in zip(order, order[1:] + order[:1]):
+            pairings[angel] = mortal
     return pairings
 
 

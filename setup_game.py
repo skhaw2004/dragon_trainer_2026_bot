@@ -1,37 +1,46 @@
-from db import init_db, import_participants, get_participant_by_name, get_participant_ids_by_tier, save_pairings, get_pairings_with_names, has_participants, reset_all_chat_modes
-from matching import load_manual_pairings, validate_full_coverage
+from db import (
+    init_db,
+    import_participants,
+    get_participant_ids_by_tier,
+    save_pairings,
+    get_pairings_with_names,
+    has_participants,
+    reset_all_chat_modes,
+    TIERS,
+)
+from matching import generate_pairings, validate_full_coverage
 
+# One dict per signup, straight from the form. "tier" accepts the form's full
+# option text ("High: Very good welfare, and big pranks") or a bare tier name.
+# room_consent  -> Q6, may your trainer enter your room
+# opposite_gender_ok -> Q7, collected for manual review; not auto-enforced
+# notes         -> Q8, free text for the host when arranging pairings
 PARTICIPANTS = [
-    {"name": "Stuart", "username": "liyouzh1", "tier": "low",
-     "room": "16-04", "likes": "boba, cats, K-pop",
-     "dislikes": "coffee, horror movies", "off_limits": "no nut allergy gifts"},
+    {"name": "Stuart", "username": "liyouzh1", "tier": "Low: Only welfare, no pranks",
+     "room": "16-04", "room_consent": "Yes", "opposite_gender_ok": "Yes",
+     "welfare_prefs": "boba, cats, K-pop; no coffee",
+     "surprise_prefs": "no horror-themed surprises",
+     "notes": ""},
 
-    {"name": "Bob", "username": "bob_tg", "tier": "low",
-     "room": "16-10", "likes": "video games, pizza, dogs",
-     "dislikes": "spicy food, early mornings", "off_limits": "no alcohol-related gifts"},
+    {"name": "Bob", "username": "bob_tg", "tier": "Low: Only welfare, no pranks",
+     "room": "16-10", "room_consent": "Yes", "opposite_gender_ok": "No",
+     "welfare_prefs": "pizza, dogs; no spicy food",
+     "surprise_prefs": "can shift furniture, no wet surprises",
+     "notes": ""},
 
-    {"name": "Charlie", "username": "charlie_tg", "tier": "low",
-     "room": "17-09", "likes": "anime, bubble tea, board games",
-     "dislikes": "seafood, loud parties", "off_limits": "no shellfish (allergy)"},
+    {"name": "Charlie", "username": "charlie_tg", "tier": "Low: Only welfare, no pranks",
+     "room": "17-09", "room_consent": "No", "opposite_gender_ok": "Yes",
+     "welfare_prefs": "bubble tea, board games; allergic to shellfish",
+     "surprise_prefs": "please do not open cabinets",
+     "notes": ""},
 
-    {"name": "Dana", "username": "dana_tg", "tier": "low",
-     "room": "15-03", "likes": "reading, plants, matcha",
-     "dislikes": "clowns, crowded places", "off_limits": "no surprise visits after 10pm"},
+    {"name": "Dana", "username": "dana_tg", "tier": "Low: Only welfare, no pranks",
+     "room": "15-03", "room_consent": "Yes", "opposite_gender_ok": "Yes",
+     "welfare_prefs": "matcha, plants; no durian",
+     "surprise_prefs": "nothing after 10pm",
+     "notes": ""},
 ]
 
-PAIRINGS = [
-    ("Stuart", "Bob"),
-    ("Bob", "Charlie"),
-    ("Charlie", "Dana"),
-    ("Dana", "Stuart"),
-    #placeholder pairings
-
-    #low
-
-    #medium
-
-    #high
-]
 
 def setup():
     init_db()
@@ -45,17 +54,26 @@ def setup():
         return
 
     import_participants(PARTICIPANTS)
-    all_pairings = load_manual_pairings(PAIRINGS, get_participant_by_name)
 
-    for tier in ("low", "medium", "high"):
-        tier_ids = get_participant_ids_by_tier(tier)
-        tier_pairings = {a: m for a, m in all_pairings.items() if a in tier_ids}
+    ids_by_tier = {tier: get_participant_ids_by_tier(tier) for tier in TIERS}
+    pairings = generate_pairings(ids_by_tier)
+
+    # generate_pairings cannot produce an invalid cycle, but check anyway so the
+    # invariant stays enforced rather than assumed if that ever changes.
+    for tier, tier_ids in ids_by_tier.items():
+        tier_pairings = {a: m for a, m in pairings.items() if a in set(tier_ids)}
         validate_full_coverage(tier_pairings, tier_ids)
 
-    save_pairings(all_pairings)
+    save_pairings(pairings)
+
+    for tier in TIERS:
+        count = len(ids_by_tier[tier])
+        if count:
+            print(f"  {tier}: {count} participants")
     for angel_name, mortal_name in get_pairings_with_names():
         print(f"{angel_name} -> {mortal_name}")
-    print(f"Loaded {len(PARTICIPANTS)} participants and {len(all_pairings)} pairings.")
+    print(f"Loaded {len(PARTICIPANTS)} participants and {len(pairings)} pairings.")
+
 
 if __name__ == "__main__":
     setup()
