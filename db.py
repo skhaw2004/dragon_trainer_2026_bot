@@ -353,7 +353,8 @@ def mark_message_reported(message_id: int):
 def get_participant_by_id(participant_id: int):
     conn = get_connection()
     row = conn.execute(
-        "SELECT id, real_name, telegram_username, telegram_user_id FROM participants WHERE id = ?",
+        "SELECT id, real_name, telegram_username, telegram_user_id, chat_mode "
+        "FROM participants WHERE id = ?",
         (participant_id,),
     ).fetchone()
     conn.close()

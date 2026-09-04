@@ -1,3 +1,5 @@
+import os
+
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 from config import ADMIN_IDS
@@ -7,7 +9,14 @@ from db import get_participant_by_telegram_id, get_my_mortal, get_my_angel, log_
 
 MORTAL_BUTTON = "🐉 Chat with your Dragon"
 ANGEL_BUTTON = "🏋️ Chat with your Trainer"
-IDLE_SECONDS = 120
+
+# How long a connection survives without activity. This exists so a message
+# typed long after the fact cannot fly off to your dragon by surprise, but two
+# minutes was short enough to disconnect people mid-conversation. Override with
+# the IDLE_SECONDS environment variable without touching the code.
+IDLE_SECONDS = int(os.environ.get("IDLE_SECONDS") or 900)
+
+CONNECTION_LABELS = {"mortal": "your dragon 🐉", "angel": "your trainer 🏋️"}
 
 MENU_KEYBOARD = ReplyKeyboardMarkup([[MORTAL_BUTTON, ANGEL_BUTTON]], resize_keyboard=True)
 
@@ -25,11 +34,29 @@ def reset_idle_timer(context, telegram_user_id: int, participant_id: int):
     )
 
 
+def describe_duration(seconds: int) -> str:
+    minutes = seconds // 60
+    if minutes < 1:
+        return f"{seconds} seconds"
+    if minutes == 1:
+        return "a minute"
+    if minutes < 60:
+        return f"{minutes} minutes"
+    hours = minutes // 60
+    return f"{hours} hour" + ("s" if hours > 1 else "")
+
+
 async def disconnect_due_to_idle(context: ContextTypes.DEFAULT_TYPE):
+    participant = get_participant_by_id(context.job.data)
+    if participant is None or participant["chat_mode"] == "none":
+        return                          # already disconnected; nothing to say
+    was = CONNECTION_LABELS.get(participant["chat_mode"], "someone")
     set_chat_mode(context.job.data, "none")
     await context.bot.send_message(
         context.job.chat_id,
-        f"You've been inactive for {IDLE_SECONDS // 60} minute(s) and have been disconnected. Type /menu to reconnect.",
+        f"You've been quiet for {describe_duration(IDLE_SECONDS)}, so you're no "
+        f"longer connected to {was}. Nothing you type now will be sent by "
+        f"accident. Type /menu when you want to talk again.",
     )
 
 
