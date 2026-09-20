@@ -1,6 +1,27 @@
-# Dragon & Trainer 2026 🐉
+# Dragon & Trainer 🐉
 
-A Telegram bot for running an anonymous Angel/Mortal game for a group of 70–80 people. Each "Trainer" (angel) is secretly assigned a "Dragon" (mortal) to look after anonymously, while a mystery Trainer of their own watches over them in return — until the big reveal. Built for Draco House at Residential College 4, NUS.
+A Telegram bot for running an anonymous **Angel/Mortal** game (Secret Santa's mischievous cousin) for a large group. Everyone is secretly assigned someone to look after — and is being looked after by someone else they can't identify — until a final reveal.
+
+The bot does the hard parts: it reads your sign-up form's CSV export, generates the pairings itself, and relays messages between people anonymously in both directions without ever leaking who is who.
+
+Built for and run with **78 participants** over two weeks at Draco House, Residential College 4, NUS. It's MIT licensed — clone it and run your own.
+
+## Try it in five minutes
+
+```
+git clone https://github.com/skhaw2004/dragon_trainer_2026_bot.git
+cd dragon_trainer_2026_bot
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # add a token from @BotFather
+cp signups.example.csv signups.csv
+python bot.py
+```
+
+`signups.example.csv` holds ten fictional participants, so you get a working game
+immediately without building a form first. Message your bot `/start` — but note the
+sample handles aren't real, so add your own Telegram handle to a row to see the
+reveal.
 
 ## How the game works
 
@@ -143,6 +164,21 @@ rm /var/data/game.db      # Render Shell
 then redeploy. Everyone is re-matched, so only do this before the game starts.
 
 Setup is all-or-nothing: if anything fails partway, participants are rolled back so the next boot retries cleanly rather than leaving a half-built game that looks complete.
+
+## Making it your own
+
+Four things are specific to the event it was built for:
+
+| What | Where | Why you'd change it |
+|---|---|---|
+| The welcome and reveal text | `handlers/registration.py` | It's full of dragon-training lore, a house name and the organisers' handles. Rewrite it for your event — it's all in one file. |
+| Which columns the CSV import looks for | `COLUMNS` in `signups.py` | Columns are found by a fragment of each question, so `"commitment level"` must appear somewhere in that question's header. If your form words it differently, change the fragment. A mismatch fails loudly at startup and names the fragment it couldn't find. |
+| Tier names | `TIERS` in `db.py`, and the `CHECK` constraint in `init_db()` | `low` / `medium` / `high`. Any set works, as long as both places agree. |
+| Idle timeout, matching seed | environment variables | See the table above; no code change needed. |
+
+Everything else — matching, relaying, reporting, the admin commands — is generic.
+
+**Sign-up form questions.** The bot expects name, Telegram handle, room, commitment level, two yes/no consent answers, and two free-text preference fields. See `signups.example.csv` for the exact shape. Fewer fields is fine if you also trim `COLUMNS` and `REQUIRED` in `signups.py`.
 
 ## Known limitations
 

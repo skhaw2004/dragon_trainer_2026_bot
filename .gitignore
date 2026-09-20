@@ -12,3 +12,7 @@ signups.csv
 signups.xlsx
 *.csv
 *.xlsx
+
+# ...except the fictional sample, which ships with the repo so anyone
+# cloning it can run the bot without building a form first.
+!signups.example.csv
